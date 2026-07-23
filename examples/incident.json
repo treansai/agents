@@ -1,0 +1,11 @@
+{
+  "incident_id": "INC-2026-07",
+  "service": "checkout-api",
+  "alert": "p95 latency above 3 seconds for 10 minutes",
+  "logs": ["ERROR pool exhausted waiting for postgres connection"],
+  "metrics": [
+    {"name": "http.p95", "value": 3.4, "unit": "s"},
+    {"name": "db.pool.used", "value": 100, "unit": "percent"}
+  ]
+}
+

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#edf1f1" />
+    <meta
+      name="description"
+      content="Console locale de test pour les agents Google ADK, CrewAI et LangGraph."
+    />
+    <title>Agent Flight Recorder</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Aller au banc de test</a>
+    <div class="shell">
+      <header class="masthead">
+        <div class="wordmark" aria-label="Agent Flight Recorder">
+          <span class="wordmark-mark" aria-hidden="true">AFR</span>
+          <span>Agent Flight Recorder</span>
+        </div>
+        <div class="runtime-status" aria-live="polite">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="runtime-label">Connexion locale…</span>
+        </div>
+      </header>
+
+      <aside class="switchboard" aria-label="Choisir un système agent">
+        <div class="switchboard-heading">
+          <p class="eyebrow">Banc local · 3 systèmes</p>
+          <h1>Testez la décision,<br />suivez la preuve.</h1>
+          <p>
+            Envoyez un scénario réel, inspectez la réponse et remontez sa chaîne d’audit.
+          </p>
+        </div>
+
+        <nav class="agent-nav" aria-label="Systèmes disponibles">
+          <button class="agent-tab active" data-agent="claims" aria-pressed="true">
+            <span class="framework-code">ADK</span>
+            <span class="tab-copy">
+              <strong>Claims reviewer</strong>
+              <small>Décision &amp; revue humaine</small>
+            </span>
+            <span class="tab-arrow" aria-hidden="true">↗</span>
+          </button>
+          <button class="agent-tab" data-agent="devops" aria-pressed="false">
+            <span class="framework-code">CREW</span>
+            <span class="tab-copy">
+              <strong>Incident responder</strong>
+              <small>Diagnostic &amp; protection</small>
+            </span>
+            <span class="tab-arrow" aria-hidden="true">↗</span>
+          </button>
+          <button class="agent-tab" data-agent="research" aria-pressed="false">
+            <span class="framework-code">GRAPH</span>
+            <span class="tab-copy">
+              <strong>Research team</strong>
+              <small>Sources &amp; conformité</small>
+            </span>
+            <span class="tab-arrow" aria-hidden="true">↗</span>
+          </button>
+        </nav>
+
+        <div class="privacy-note">
+          <span aria-hidden="true">◉</span>
+          <p><strong>Local par défaut.</strong> La clé API de cette console reste en mémoire de session.</p>
+        </div>
+      </aside>
+
+      <main class="workspace" id="workspace">
+        <section class="trace-rail" aria-label="Étapes de l’exécution">
+          <div class="rail-line" aria-hidden="true"></div>
+          <div class="trace-step current" data-step="input">
+            <span>01</span>
+            <div><strong>Entrée</strong><small>Scénario validé</small></div>
+          </div>
+          <div class="trace-step" data-step="control">
+            <span>02</span>
+            <div><strong>Contrôle</strong><small>Agent + policy</small></div>
+          </div>
+          <div class="trace-step" data-step="evidence">
+            <span>03</span>
+            <div><strong>Preuve</strong><small>Trace signée</small></div>
+          </div>
+        </section>
+
+        <section class="dossier" aria-labelledby="agent-title">
+          <div class="dossier-header">
+            <div>
+              <p class="eyebrow" id="framework-label">Google Agent Development Kit</p>
+              <h2 id="agent-title">AI Claims Reviewer</h2>
+            </div>
+            <span class="policy-badge" id="policy-badge">Policy gate active</span>
+          </div>
+
+          <div class="credential-row">
+            <label for="api-key">Clé locale de l’API</label>
+            <div class="secret-control">
+              <input
+                id="api-key"
+                name="api-key"
+                type="password"
+                autocomplete="off"
+                placeholder="APP_API_KEY"
+                spellcheck="false"
+              />
+              <button type="button" class="quiet-button" id="toggle-secret" aria-label="Afficher la clé">
+                Afficher
+              </button>
+            </div>
+            <small>Utilisée uniquement pour l’en-tête X-API-Key, jamais envoyée ailleurs.</small>
+          </div>
+
+          <div class="editor-block">
+            <div class="editor-toolbar">
+              <label for="payload">Scénario JSON</label>
+              <div>
+                <button type="button" class="quiet-button" id="reset-payload">Exemple</button>
+                <button type="button" class="quiet-button" id="format-payload">Formater</button>
+              </div>
+            </div>
+            <textarea id="payload" spellcheck="false" aria-describedby="payload-help"></textarea>
+            <p id="payload-help" class="field-help">Modifiez l’exemple, puis lancez une exécution.</p>
+          </div>
+
+          <div class="action-row">
+            <button class="run-button" type="button" id="run-agent">
+              <span id="run-label">Analyser la demande</span>
+              <span class="run-icon" aria-hidden="true">→</span>
+            </button>
+            <p id="request-state" role="status" aria-live="polite">Prêt à exécuter.</p>
+          </div>
+        </section>
+
+        <section class="result-panel" id="result-panel" aria-labelledby="result-title">
+          <div class="result-header">
+            <div>
+              <p class="eyebrow">Sortie validée</p>
+              <h2 id="result-title">Résultat d’exécution</h2>
+            </div>
+            <div class="result-actions">
+              <button type="button" class="quiet-button" id="copy-result">Copier</button>
+              <button type="button" class="quiet-button" id="load-audit" disabled>Voir l’audit</button>
+            </div>
+          </div>
+          <div class="empty-result" id="empty-result">
+            <span aria-hidden="true">⌁</span>
+            <p>La décision, ses garde-fous et sa signature apparaîtront ici.</p>
+          </div>
+          <pre id="result-output" tabindex="0" hidden><code></code></pre>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
+

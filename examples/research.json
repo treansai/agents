@@ -1,0 +1,15 @@
+{
+  "report_id": "RPT-001",
+  "topic": "Impact du règlement européen sur les systèmes IA à haut risque",
+  "jurisdiction": "EU",
+  "policy_requirements": ["Toute affirmation réglementaire doit avoir une source"],
+  "sources": [
+    {
+      "source_id": "eu-ai-act",
+      "title": "Texte officiel fourni par le client",
+      "url": "https://eur-lex.europa.eu/",
+      "content": "Contenu documentaire préalablement collecté et approuvé, suffisamment long pour analyse."
+    }
+  ]
+}
+

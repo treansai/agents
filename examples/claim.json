@@ -1,0 +1,13 @@
+{
+  "claim_id": "CLM-1001",
+  "claimant_id": "USR-42",
+  "category": "medical",
+  "amount": 1250,
+  "currency": "EUR",
+  "description": "Emergency medical treatment reimbursement request.",
+  "documents": [
+    {"document_id": "doc-1", "kind": "invoice", "verified": true},
+    {"document_id": "doc-2", "kind": "medical_report", "verified": true}
+  ]
+}
+

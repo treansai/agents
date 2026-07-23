@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agenomic-demo-agents"
+version = "1.0.0"
+description = "Three governed production agent demos using Google ADK, CrewAI, and LangGraph"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "crewai>=1.4,<2",
+  "fastapi>=0.116,<1",
+  "google-adk>=1.14,<2",
+  "httpx>=0.28,<1",
+  "langchain>=1.1,<2",
+  "langchain-openai>=1.0,<2",
+  "langfuse>=3.10,<5",
+  "langgraph>=1.0,<2",
+  "langsmith[google-adk,otel]>=0.4.25,<1",
+  "openinference-instrumentation-crewai>=0.1.15,<1",
+  "openinference-instrumentation-google-adk>=0.1.4,<1",
+  "opentelemetry-instrumentation-openai>=0.50b0,<1",
+  "pydantic-settings>=2.10,<3",
+  "python-json-logger>=3.3,<5",
+  "structlog>=25.4,<26",
+  "tenacity>=9.1,<10",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.17,<2",
+  "pytest>=8.4,<10",
+  "pytest-asyncio>=1.1,<2",
+  "pytest-cov>=6.2,<8",
+  "ruff>=0.12,<1",
+]
+
+[project.scripts]
+agenomic-agents = "agenomic_agents.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agenomic_agents"]
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers --disable-warnings"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["agenomic_agents"]
+
