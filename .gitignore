@@ -11,5 +11,5 @@ dist/
 build/
 *.egg-info/
 data/*.db*
+data/agenomic/
 logs/*.log*
-

@@ -8,7 +8,7 @@ Trois systèmes d’agents gouvernés, conçus pour tester audit, replay, confor
 | Autonomous DevOps Incident Responder | CrewAI | Aucune remédiation n’est exécutée; commandes dangereuses et boucles sont bloquées |
 | AI Research & Compliance Team | LangGraph | Sources vérifiées, conformité obligatoire, révision bornée et paquet de preuves |
 
-Chaque exécution produit des logs JSON, des traces Langfuse + LangSmith et une chaîne d’audit SQLite signée par HMAC. Le contenu des prompts n’est pas capturé par défaut.
+Chaque exécution produit des logs JSON, des traces Langfuse + LangSmith, une enveloppe Agenomic et un événement ATEP signé Ed25519, en plus de la chaîne d’audit SQLite signée par HMAC. Les entrées et sorties métier ne sont jamais copiées dans Agenomic : seules les corrélations, métadonnées et empreintes BLAKE3 sont persistées.
 
 ## Architecture
 
@@ -17,7 +17,9 @@ FastAPI + API key
 ├── /v1/claims/review       Google ADK: intake → documents → risk → policy → explanation
 ├── /v1/incidents/respond   CrewAI: logs → metrics → root cause → safe plan → notification
 ├── /v1/research/report     LangGraph: research + verify → analysis → compliance ↻ → evidence → editor
-└── /v1/audit/runs/{id}     Signed append-only audit events
+├── /v1/audit/runs/{id}     Signed append-only audit events
+├── /v1/agenomic/runs/{id}  Redacted Agenomic trace correlated to the domain run
+└── /v1/agenomic/verify     ATEP signatures, Merkle roots and causal-chain verification
 ```
 
 Les LLM produisent analyse et rédaction. Les invariants de sécurité restent dans du code déterministe : seuil de revue humaine, contrôles fraude, budget d’outils, denylist de commandes, limite de révision, identifiants de sources et couverture des preuves.
@@ -74,6 +76,19 @@ LANGSMITH_PROJECT=agenomic-demo-agents
 - Les scripts courts appellent `flush()` pour ne pas perdre les spans en file d’attente.
 
 En production, garder `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=false` tant qu’une revue confidentialité/PII n’a pas explicitement autorisé la capture du contenu.
+
+## Agenomic et preuves ATEP
+
+Le SDK `agenomic` 0.1 est utilisé directement par les trois systèmes, en mode local/offline ; aucune clé Agenomic ou OpenAI n’est nécessaire pour écrire et vérifier les traces :
+
+- Google ADK : run agent et policy gate enregistrés comme étapes hashées ;
+- CrewAI : kickoff, fallback et contrôle des commandes enregistrés comme étapes hashées ;
+- LangGraph : chaque nœud exécuté est instrumenté, y compris via l’adaptateur de compatibilité requis par les `Runnable` LangGraph 1.x ;
+- toutes les enveloppes sont corrélées au `run_id` métier et portent leur propre `agenomic_run_id` et `agenomic_trace_id` ;
+- les fichiers JSONL redacted et segments ATEP sont placés sous `APP_AGENOMIC_DATA_PATH` ;
+- la clé privée Ed25519 locale est créée avec le mode `0600`; sa clé publique est exportée à côté pour la vérification.
+
+La console « Voir l’audit » charge ensemble le ledger applicatif et l’enveloppe Agenomic. La readiness vérifie également les signatures, racines Merkle et liens causaux ATEP.
 
 ## Exemples API
 
@@ -164,7 +179,7 @@ Le conteneur tourne sans root, avec système de fichiers en lecture seule, aucun
 2. remplacer SQLite par un ledger/queue transactionnel géré si plusieurs réplicas écrivent en parallèle ;
 3. placer les documents dans un stockage chiffré avec politiques de rétention et redaction PII ;
 4. utiliser des identités de workload et un gestionnaire de secrets, jamais des clés dans l’image ;
-5. brancher les événements d’audit sur Agenomic via un adaptateur versionné lorsque son contrat ATEP est disponible ;
+5. monter `APP_AGENOMIC_DATA_PATH` sur un volume persistant à écrivain unique, ou remplacer l’export local par un backend Agenomic partagé avant d’activer plusieurs workers ;
 6. exécuter evals, replay et tests de drift avant chaque promotion de prompt/modèle/policy.
 
 ## Limites explicites
@@ -173,10 +188,11 @@ Le conteneur tourne sans root, avec système de fichiers en lecture seule, aucun
 - Les notifications et tickets sont une outbox durable, pas des appels SaaS cachés.
 - Le ledger est tamper-evident, pas un substitut à un journal WORM ou à un service de signature HSM.
 - Les décisions d’assurance de démonstration ne constituent pas un système réglementaire complet.
-- L’adaptateur Agenomic n’est pas inventé : le ledger expose des événements propres, prêts à être mappés au contrat officiel du produit.
+- Agenomic 0.1 utilise un écrivain ATEP local sérialisé par processus ; le déploiement fourni démarre donc un seul worker.
 
 ## Références d’intégration
 
+- [Agenomic Python SDK](https://github.com/treansai/agenomic-python/)
 - [Google ADK : tracing Langfuse](https://langfuse.com/integrations/frameworks/google-adk)
 - [CrewAI : tracing Langfuse](https://langfuse.com/integrations/frameworks/crewai)
 - [LangGraph : tracing Langfuse](https://langfuse.com/integrations/frameworks/langchain)

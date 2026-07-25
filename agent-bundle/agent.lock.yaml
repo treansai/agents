@@ -1,0 +1,20 @@
+spec_version: '0.1'
+agent_id: 'agent://treansai/claims-reviewer'
+model:
+  provider: 'google'
+  model_id: 'gemini-2.5-flash'
+  temperature: 0.0
+tools:
+  - name: 'claims.agent.run'
+    protocol: 'local'
+    version: '1'
+    permissions:
+      - 'claims.analyze'
+    requires_human_approval: false
+  - name: 'claims.policy.evaluate'
+    protocol: 'local'
+    version: '1'
+    permissions:
+      - 'claims.decide'
+    requires_human_approval: false
+knowledge: []

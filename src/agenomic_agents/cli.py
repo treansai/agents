@@ -4,8 +4,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
+
 from agenomic_agents.claims.models import ClaimRequest
 from agenomic_agents.claims.service import ClaimsService
+from agenomic_agents.common.agenomic import AgenomicRuntime
 from agenomic_agents.common.config import get_settings
 from agenomic_agents.common.ledger import SignedLedger
 from agenomic_agents.common.logging import configure_logging
@@ -27,30 +30,34 @@ def main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
     ledger = SignedLedger(settings.database_path, settings.ledger_hmac_key.get_secret_value())
+    agenomic = AgenomicRuntime(settings)
     if args.agent == "verify-ledger":
-        print(json.dumps({"valid": ledger.verify()}))
+        print(json.dumps({"valid": ledger.verify(), "agenomic": agenomic.verify()}))
+        agenomic.close()
         return
     if args.payload is None:
         parser.error("payload is required for this agent")
     payload: dict[str, Any] = json.loads(args.payload.read_text(encoding="utf-8"))
+    result: BaseModel
     try:
         if args.agent == "claims":
             result = asyncio.run(
-                ClaimsService(settings, ledger).review(
+                ClaimsService(settings, ledger, agenomic).review(
                     ClaimRequest.model_validate(payload), use_llm=not args.no_llm
                 )
             )
         elif args.agent == "devops":
-            result = IncidentService(settings, ledger).respond(
+            result = IncidentService(settings, ledger, agenomic).respond(
                 IncidentRequest.model_validate(payload), use_llm=not args.no_llm
             )
         else:
-            result = ResearchService(settings, ledger).create_report(
+            result = ResearchService(settings, ledger, agenomic).create_report(
                 ResearchRequest.model_validate(payload)
             )
         print(result.model_dump_json(indent=2))
     finally:
         flush_observability()
+        agenomic.close()
 
 
 if __name__ == "__main__":

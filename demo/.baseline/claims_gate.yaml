@@ -1,0 +1,13 @@
+# Deterministic policy gate parameters — the single source of truth the
+# runtime code (agenomic_agents/claims/policy.py) must mirror.
+policy_id: 'claims.deterministic_gate'
+version: '1'
+parameters:
+  human_review_amount_threshold: 50000
+  human_review_risk_threshold: 0.65
+  hard_fraud_rejects: true
+required_documents:
+  medical: [invoice, medical_report]
+  property: [invoice, incident_report, proof_of_ownership]
+  travel: [invoice, booking_confirmation]
+  vehicle: [invoice, incident_report, registration]

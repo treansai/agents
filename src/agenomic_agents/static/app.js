@@ -198,13 +198,23 @@ async function loadAudit() {
   elements.auditButton.disabled = true;
   elements.requestState.textContent = "Lecture du ledger…";
   try {
-    const response = await fetch(`/v1/audit/runs/${encodeURIComponent(activeRunId)}`, {
-      headers: { "X-API-Key": elements.apiKey.value.trim() },
-    });
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.detail || "Audit indisponible");
-    showResult({ execution: activeResult, audit_events: body });
-    elements.requestState.textContent = `${body.length} événement(s) d’audit chargé(s).`;
+    const headers = { "X-API-Key": elements.apiKey.value.trim() };
+    const encodedRunId = encodeURIComponent(activeRunId);
+    const [auditResponse, agenomicResponse] = await Promise.all([
+      fetch(`/v1/audit/runs/${encodedRunId}`, { headers }),
+      fetch(`/v1/agenomic/runs/${encodedRunId}`, { headers }),
+    ]);
+    const [auditEvents, agenomicTraces] = await Promise.all([
+      auditResponse.json(),
+      agenomicResponse.json(),
+    ]);
+    if (!auditResponse.ok) throw new Error(auditEvents.detail || "Audit indisponible");
+    if (!agenomicResponse.ok) {
+      throw new Error(agenomicTraces.detail || "Trace Agenomic indisponible");
+    }
+    showResult({ execution: activeResult, audit_events: auditEvents, agenomic_traces: agenomicTraces });
+    elements.requestState.textContent =
+      `${auditEvents.length} événement(s), ${agenomicTraces.length} trace(s) Agenomic.`;
   } catch (error) {
     elements.requestState.textContent = error.message;
   } finally {

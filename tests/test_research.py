@@ -1,5 +1,7 @@
 import pytest
 
+from agenomic_agents.common.agenomic import AgenomicRuntime
+from agenomic_agents.common.config import Settings
 from agenomic_agents.common.ledger import SignedLedger
 from agenomic_agents.research import graph as graph_module
 from agenomic_agents.research.graph import build_research_graph, validate_final_report
@@ -16,6 +18,7 @@ from agenomic_agents.research.models import (
     SourceDocument,
     VerificationResult,
 )
+from agenomic_agents.research.service import ResearchService
 
 
 def _request() -> ResearchRequest:
@@ -93,3 +96,28 @@ def test_langgraph_happy_path_packages_evidence(
     assert state["evidence"].coverage == 1
     assert state["final_report"].cited_source_ids == ["src-1"]
     assert ledger.verify()
+
+
+def test_research_service_records_langgraph_nodes_in_agenomic(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings, ledger: SignedLedger
+) -> None:
+    monkeypatch.setattr(graph_module, "init_chat_model", lambda *args, **kwargs: _FakeModel())
+    runtime = AgenomicRuntime(settings)
+    try:
+        result = ResearchService(settings, ledger, runtime).create_report(_request())
+        traces = runtime.find_by_domain_run(result.run_id)
+    finally:
+        runtime.close()
+
+    assert result.agenomic_run_id
+    assert len(traces) == 1
+    assert traces[0]["labels"]["framework"] == "langgraph"
+    assert {call["server"] for call in traces[0]["tool_calls"]} == {"langgraph"}
+    assert {call["tool"] for call in traces[0]["tool_calls"]} >= {
+        "research",
+        "verify",
+        "analysis",
+        "compliance",
+        "evidence",
+        "editor",
+    }

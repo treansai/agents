@@ -9,7 +9,8 @@ request_id_context: ContextVar[str] = ContextVar("request_id", default="-")
 
 def configure_logging(level: str = "INFO") -> None:
     """Configure JSON logs once. Secret values are never intentionally logged."""
-    logging.basicConfig(format="%(message)s", stream=sys.stdout, level=level.upper(), force=True)
+    # stderr, jamais stdout : le CLI réserve stdout au JSON métier.
+    logging.basicConfig(format="%(message)s", stream=sys.stderr, level=level.upper(), force=True)
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,

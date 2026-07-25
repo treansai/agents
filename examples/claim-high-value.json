@@ -1,0 +1,20 @@
+{
+  "claim_id": "CLM-7500",
+  "claimant_id": "USR-77",
+  "category": "property",
+  "amount": 75000,
+  "currency": "EUR",
+  "description": "Water damage restoration after a burst pipe flooded the ground floor of the insured property.",
+  "documents": [
+    { "document_id": "doc-1", "kind": "invoice", "verified": true },
+    { "document_id": "doc-2", "kind": "incident_report", "verified": true },
+    { "document_id": "doc-3", "kind": "proof_of_ownership", "verified": true }
+  ],
+  "signals": {
+    "identity_match": true,
+    "amount_anomaly": false,
+    "duplicate_claim": false,
+    "provider_mismatch": false,
+    "prior_claims_12m": 1
+  }
+}

@@ -77,6 +77,8 @@ class FinalReport(BaseModel):
 
 class ResearchResponse(BaseModel):
     run_id: str
+    agenomic_run_id: str
+    agenomic_trace_id: str
     report_id: str
     report: FinalReport
     evidence: EvidencePackage

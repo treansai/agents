@@ -33,6 +33,8 @@ def test_no_llm_incident_path_still_queues_notification_and_ticket(
     assert response.notification_queued
     assert response.ticket_queued
     assert response.assessment.confidence == 0
+    assert response.agenomic_run_id
+    assert response.agenomic_trace_id
     assert [event.action for event in ledger.list_run(response.run_id)] == [
         "alert_received",
         "notification_queued",

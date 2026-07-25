@@ -34,7 +34,11 @@ def test_readiness_verifies_ledger(settings: Settings) -> None:
     with TestClient(create_app(settings)) as client:
         response = client.get("/readyz")
         assert response.status_code == 200
-        assert response.json() == {"status": "ready", "ledger_valid": True}
+        assert response.json() == {
+            "status": "ready",
+            "ledger_valid": True,
+            "agenomic_valid": True,
+        }
 
 
 def test_request_size_limit(settings: Settings) -> None:

@@ -37,6 +37,8 @@ class IncidentAssessment(BaseModel):
 
 class IncidentResponse(BaseModel):
     run_id: str
+    agenomic_run_id: str
+    agenomic_trace_id: str
     incident_id: str
     assessment: IncidentAssessment
     blocked_actions: list[str]

@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = { text = "Apache-2.0" }
 dependencies = [
+  "agenomic>=0.1,<0.2",
   "crewai>=1.4,<2",
   "fastapi>=0.116,<1",
   "google-adk>=1.14,<2",
@@ -60,4 +61,3 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 python_version = "3.11"
 strict = true
 packages = ["agenomic_agents"]
-

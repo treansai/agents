@@ -13,6 +13,7 @@ def settings(tmp_path: Path) -> Settings:
         api_key="test-api-key",
         ledger_hmac_key="test-ledger-key",
         database_path=tmp_path / "test.db",
+        agenomic_data_path=tmp_path / "agenomic",
     )
 
 

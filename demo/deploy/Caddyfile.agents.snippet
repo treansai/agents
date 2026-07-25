@@ -1,0 +1,13 @@
+# Bloc à AJOUTER à /opt/agenomic/Caddyfile (TLS automatique via ACME).
+# Nécessite AGENTS_DOMAIN dans /opt/agenomic/.env et l'enregistrement DNS.
+{$AGENTS_DOMAIN} {
+  encode gzip zstd
+  reverse_proxy agents:8080 {
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Host {host}
+  }
+  log {
+    output stdout
+    level INFO
+  }
+}

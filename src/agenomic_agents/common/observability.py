@@ -1,10 +1,10 @@
 import os
 import threading
 from contextlib import nullcontext
-from typing import Any
+from typing import Any, cast
 
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace import SpanProcessor, TracerProvider
 
 from agenomic_agents.common.logging import get_logger
 
@@ -63,7 +63,7 @@ def configure_crewai_observability() -> None:
         if _has_langsmith():
             from langsmith.integrations.otel import OtelSpanProcessor
 
-            provider.add_span_processor(OtelSpanProcessor())
+            provider.add_span_processor(cast("SpanProcessor", OtelSpanProcessor()))
         if _has_langfuse() or _has_langsmith():
             from openinference.instrumentation.crewai import CrewAIInstrumentor
 

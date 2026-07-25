@@ -50,11 +50,23 @@ def test_high_value_claim_cannot_auto_approve() -> None:
 async def test_service_no_llm_writes_signed_audit_events(
     settings: Settings, ledger: SignedLedger
 ) -> None:
-    response = await ClaimsService(settings, ledger).review(_claim(), use_llm=False)
+    service = ClaimsService(settings, ledger)
+    response = await service.review(_claim(), use_llm=False)
     assert response.decision == ClaimDecision.APPROVE
     assert response.model_analysis is None
     assert response.audit_signature
+    assert response.agenomic_run_id
+    assert response.agenomic_trace_id
     assert [event.action for event in ledger.list_run(response.run_id)] == [
         "claim_received",
         "decision_enforced",
+    ]
+
+    traces = service.agenomic.find_by_domain_run(response.run_id)
+    assert len(traces) == 1
+    assert traces[0]["input"]["payload_inline"] == {"redacted": True}
+    assert traces[0]["final_output"]["payload_inline"] == {"redacted": True}
+    assert traces[0]["labels"]["framework"] == "google-adk"
+    assert [step["tool"] for step in traces[0]["tool_calls"]] == [
+        "claims.policy.evaluate"
     ]

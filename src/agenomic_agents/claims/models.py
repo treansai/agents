@@ -50,6 +50,8 @@ class ClaimRequest(BaseModel):
 
 class ClaimReview(BaseModel):
     run_id: str
+    agenomic_run_id: str
+    agenomic_trace_id: str
     claim_id: str
     decision: ClaimDecision
     risk_score: float = Field(ge=0, le=1)

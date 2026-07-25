@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from agenomic_agents.claims.models import ClaimRequest, ClaimReview
 from agenomic_agents.claims.service import ClaimsService
+from agenomic_agents.common.agenomic import AgenomicRuntime
 from agenomic_agents.common.config import Settings, get_settings
 from agenomic_agents.common.ledger import AuditEvent, SignedLedger
 from agenomic_agents.common.logging import configure_logging, get_logger, request_id_context
@@ -28,9 +29,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ledger = SignedLedger(
         runtime_settings.database_path, runtime_settings.ledger_hmac_key.get_secret_value()
     )
-    claims = ClaimsService(runtime_settings, ledger)
-    incidents = IncidentService(runtime_settings, ledger)
-    research = ResearchService(runtime_settings, ledger)
+    agenomic = AgenomicRuntime(runtime_settings)
+    claims = ClaimsService(runtime_settings, ledger, agenomic)
+    incidents = IncidentService(runtime_settings, ledger, agenomic)
+    research = ResearchService(runtime_settings, ledger, agenomic)
     static_dir = Path(__file__).parent / "static"
 
     @asynccontextmanager
@@ -38,6 +40,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         logger.info("application_started", environment=runtime_settings.env)
         yield
         flush_observability()
+        agenomic.close()
         logger.info("application_stopped")
 
     api = FastAPI(
@@ -94,7 +97,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         valid = await run_in_threadpool(ledger.verify)
         if not valid:
             raise HTTPException(status_code=503, detail="Audit ledger verification failed")
-        return {"status": "ready", "ledger_valid": True}
+        agenomic_report = await run_in_threadpool(agenomic.verify)
+        agenomic_valid = all(report["ok"] for report in agenomic_report.values())
+        if not agenomic_valid:
+            raise HTTPException(status_code=503, detail="Agenomic ATEP verification failed")
+        return {"status": "ready", "ledger_valid": True, "agenomic_valid": True}
 
     @api.post(
         "/v1/claims/review",
@@ -131,6 +138,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def audit_run(run_id: str) -> list[AuditEvent]:
         return await run_in_threadpool(ledger.list_run, run_id)
+
+    @api.get(
+        "/v1/agenomic/runs/{run_id}",
+        response_model=list[dict[str, Any]],
+        dependencies=[protected],
+        tags=["agenomic"],
+    )
+    async def agenomic_run(run_id: str) -> list[dict[str, Any]]:
+        return await run_in_threadpool(agenomic.find_by_domain_run, run_id)
+
+    @api.get(
+        "/v1/agenomic/verify",
+        response_model=dict[str, dict[str, Any]],
+        dependencies=[protected],
+        tags=["agenomic"],
+    )
+    async def verify_agenomic() -> dict[str, dict[str, Any]]:
+        return await run_in_threadpool(agenomic.verify)
 
     return api
 

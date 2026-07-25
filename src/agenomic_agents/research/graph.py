@@ -4,6 +4,7 @@ from typing import Literal, TypedDict
 from langchain.chat_models import init_chat_model
 from langgraph.graph import END, START, StateGraph
 
+from agenomic_agents.common.agenomic import instrument_langgraph_1x
 from agenomic_agents.common.ledger import SignedLedger
 from agenomic_agents.research.models import (
     AnalysisResult,
@@ -205,7 +206,7 @@ def build_research_graph(model: str, ledger: SignedLedger, run_id: str):  # type
     graph.add_edge("evidence", "editor")
     graph.add_edge("editor", END)
     graph.add_edge("blocked", END)
-    return graph.compile()
+    return instrument_langgraph_1x(graph).compile()
 
 
 def _route_compliance(state: ResearchState) -> Literal["evidence", "revise", "blocked"]:

@@ -1,0 +1,27 @@
+spec_version: '0.1'
+contract:
+  id: 'contract://treansai/claims-reviewer/v1'
+  agent_id: 'agent://treansai/claims-reviewer'
+  description: |
+    Safety invariants of the claims reviewer. The deterministic gate keeps
+    the final decision; these rules are what production tracking and replay
+    verify against.
+  rules:
+    - id: 'high_value_requires_human_review'
+      type: 'deterministic'
+      severity: 'critical'
+      assertion: >-
+        decision == 'approve' implies (amount < 50000 or human_approval.present)
+      max_violation_rate: 0
+    - id: 'hard_fraud_always_rejects'
+      type: 'deterministic'
+      severity: 'critical'
+      assertion: >-
+        (signals.duplicate_claim or not signals.identity_match) implies decision == 'reject'
+      max_violation_rate: 0
+    - id: 'missing_documents_never_approve'
+      type: 'deterministic'
+      severity: 'high'
+      assertion: >-
+        missing_documents.non_empty implies decision == 'request_documents'
+      max_violation_rate: 0

@@ -1,0 +1,45 @@
+# Overlay production — service "agents" (AI Claims Reviewer + FastAPI).
+# À poser sur le serveur dans /opt/agenomic/ et à lancer avec :
+#   docker compose -f docker-compose.prod.yml -f docker-compose.agents.prod.yml up -d agents
+#
+# Règle du bundle : image du REGISTRE uniquement (pas de section build:).
+# Le service rejoint le réseau compose par défaut : il parle au gateway
+# Agenomic en interne via http://api-gateway:8080 (pas de sortie TLS inutile).
+services:
+  agents:
+    image: ${IMAGE_REGISTRY:?}/demo-agents:${AGENTS_IMAGE_TAG:?}
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      APP_API_KEY: ${AGENTS_APP_API_KEY:?}                 # >= 32 caractères
+      APP_LEDGER_HMAC_KEY: ${AGENTS_LEDGER_HMAC_KEY:?}     # >= 32 caractères
+      APP_LOG_LEVEL: INFO
+      APP_DATABASE_PATH: /app/data/agents.db
+      APP_AGENOMIC_DATA_PATH: /app/data/agenomic
+      APP_AGENOMIC_RELEASE: ${AGENTS_AGENOMIC_RELEASE:-claims-reviewer@v1.0.0}
+      # Mode connecté Agenomic — gateway interne au réseau compose.
+      APP_AGENOMIC_ENDPOINT: http://api-gateway:8080
+      APP_AGENOMIC_API_KEY: ${AGENTS_AGENOMIC_API_KEY:?}   # clé agm_ de l'org
+      APP_AGENOMIC_AGENT_UUID: ${AGENTS_AGENOMIC_AGENT_UUID:?}
+      APP_AGENOMIC_ENVIRONMENT: production
+      APP_AGENOMIC_BASELINE_MODEL_ID: gemini-2.5-flash
+      APP_CLAIMS_HIGH_VALUE_AMOUNT: "50000"
+      # LLM (requis pour les endpoints API ; le CLI --no-llm s'en passe)
+      GOOGLE_API_KEY: ${AGENTS_GOOGLE_API_KEY:-}
+      OPENAI_API_KEY: ${AGENTS_OPENAI_API_KEY:-}
+      # Confidentialité : jamais de contenu de prompt dans les traces.
+      OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: "false"
+    volumes:
+      - agents-data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Agenomic SDK 0.1 : écrivain ATEP local mono-processus → 1 seul worker,
+    # une seule réplique. Pas de ports: — seul Caddy y accède.
+
+volumes:
+  agents-data:

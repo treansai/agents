@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from agenomic_agents.common.agenomic import AgenomicRuntime, correlate_run, trace_step
 from agenomic_agents.common.config import Settings
 from agenomic_agents.common.ledger import SignedLedger
 from agenomic_agents.common.observability import configure_crewai_observability, observation
@@ -14,12 +15,25 @@ from agenomic_agents.devops.models import (
 
 
 class IncidentService:
-    def __init__(self, settings: Settings, ledger: SignedLedger) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        ledger: SignedLedger,
+        agenomic: AgenomicRuntime | None = None,
+    ) -> None:
         self.settings = settings
         self.ledger = ledger
+        self.agenomic = agenomic or AgenomicRuntime(settings)
+        self._traced_respond = self.agenomic.traced("devops", self._respond)
 
     def respond(self, incident: IncidentRequest, *, use_llm: bool = True) -> IncidentResponse:
+        return self._traced_respond(incident, use_llm=use_llm)
+
+    def _respond(self, incident: IncidentRequest, *, use_llm: bool = True) -> IncidentResponse:
         run_id = str(uuid4())
+        agenomic_run_id, agenomic_trace_id = correlate_run(
+            run_id, framework="crewai", workflow="incident-response"
+        )
         self.ledger.append(
             run_id=run_id,
             agent="devops.intake",
@@ -27,8 +41,21 @@ class IncidentService:
             payload={"incident_id": incident.incident_id, "service": incident.service},
         )
         with observation("incident-response"):
-            assessment = self._run_crew(incident) if use_llm else _fallback_assessment(incident)
-            blocked = blocked_commands(assessment.proposed_commands)
+            with trace_step(
+                "incident.crew.kickoff" if use_llm else "incident.fallback",
+                server="crewai" if use_llm else "deterministic-fallback",
+                input_value={"incident_id": incident.incident_id, "service": incident.service},
+            ):
+                assessment = (
+                    self._run_crew(incident) if use_llm else _fallback_assessment(incident)
+                )
+            with trace_step(
+                "incident.commands.guard",
+                server="deterministic-policy",
+                input_value=assessment.proposed_commands,
+                requires_human_approval=True,
+            ):
+                blocked = blocked_commands(assessment.proposed_commands)
         if blocked:
             assessment = assessment.model_copy(
                 update={
@@ -58,6 +85,8 @@ class IncidentService:
         )
         return IncidentResponse(
             run_id=run_id,
+            agenomic_run_id=agenomic_run_id,
+            agenomic_trace_id=agenomic_trace_id,
             incident_id=incident.incident_id,
             assessment=assessment,
             blocked_actions=blocked,

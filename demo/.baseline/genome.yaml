@@ -1,0 +1,42 @@
+spec_version: '0.1'
+# Alias for cloud consumers that key on apiVersion; the body is the
+# canonical agenomic-cli (spec_version 0.1) shape.
+apiVersion: 'agenomic.dev/v0.1'
+agent:
+  id: 'agent://treansai/claims-reviewer'
+  name: 'claims-reviewer'
+  domain: 'insurance-claims'
+  criticality: 'high'
+  authors:
+    - 'Traidano <dev@traidano.com>'
+description: |
+  AI Claims Reviewer — a Google ADK pipeline (intake, documents, risk, policy,
+  explanation) analyzes each claim, but the final decision belongs to a
+  deterministic policy gate that enforces mandatory human review for
+  high-value or high-risk claims. The LLM can explain; it cannot decide.
+runtime:
+  framework: 'google-adk'
+  runtime_kind: 'python'
+  model_provider: 'google'
+  model_id: 'gemini-2.5-flash'
+  entrypoint: 'agenomic_agents.cli:main'
+tools:
+  - { name: 'claims.agent.run',       kind: 'llm-pipeline',         version: '1' }
+  - { name: 'claims.policy.evaluate', kind: 'deterministic-policy', version: '1' }
+skills: []
+knowledge: []
+policies:
+  - id: 'claims.deterministic_gate'
+    path: 'policies/claims_gate.yaml'
+    severity: 'critical'
+memory:
+  id: 'claims-audit-ledger'
+  kind: 'runtime'
+  version: '1'
+  backend: 'sqlite'
+  retention_days: 365
+  stores_user_specific_data: false
+  description: |
+    Append-only HMAC-signed audit ledger of run events (decisions, hashes,
+    correlations). No raw claim contents are persisted in Agenomic traces:
+    only BLAKE3 hashes and metadata.
